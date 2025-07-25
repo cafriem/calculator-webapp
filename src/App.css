@@ -100,11 +100,35 @@
   padding: 18px 12px;
   border-radius: 8px;
   margin-bottom: 18px;
-  min-height: 48px;
+  height: 84px;
   text-align: right;
   letter-spacing: 1px;
   width: 100%;
   box-sizing: border-box;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.display::-webkit-scrollbar {
+  height: 4px;
+}
+
+.display::-webkit-scrollbar-track {
+  background: #333;
+  border-radius: 2px;
+}
+
+.display::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 2px;
+}
+
+.display::-webkit-scrollbar-thumb:hover {
+  background: #777;
 }
 
 .buttons {
@@ -232,7 +256,7 @@
   .display {
     font-size: 1.5rem;
     padding: 14px 8px;
-    min-height: 36px;
+    height: 64px;
   }
   .button-row button {
     padding: 14px 0;
@@ -286,6 +310,7 @@
   .display {
     font-size: 1.1rem;
     padding: 8px 4px;
+    height: 44px;
   }
   .button-row button {
     font-size: 0.9rem;
