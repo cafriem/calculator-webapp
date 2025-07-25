@@ -63,10 +63,16 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  max-width: 350px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .calculator-container.scientific {
   width: 450px;
+  max-width: 450px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .mode-toggle {
@@ -105,6 +111,9 @@
   letter-spacing: 1px;
   width: 100%;
   box-sizing: border-box;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
 .buttons {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import "./App.css";
 
 const basicButtons = [
@@ -20,6 +20,8 @@ function App() {
   const [display, setDisplay] = useState("");
   const [cursorPos, setCursorPos] = useState(0); // New: cursor position
   const [history, setHistory] = useState([]);
+  const [lastCursorPos, setLastCursorPos] = useState(0);
+  const displayRef = useRef(null);
 
   const handleButtonClick = useCallback((value) => {
     if (value === "=") {
@@ -29,9 +31,18 @@ function App() {
           .replace(/sin\(([^)]+)\)/g, (m, x) => `Math.sin((${x})*Math.PI/180)`)
           .replace(/cos\(([^)]+)\)/g, (m, x) => `Math.cos((${x})*Math.PI/180)`)
           .replace(/tan\(([^)]+)\)/g, (m, x) => `Math.tan((${x})*Math.PI/180)`)
-          .replace(/log\(([^)]+)\)/g, (m, x) => `Math.log10(${x})`);
+          .replace(/log\(([^)]+)\)/g, (m, x) => `Math.log10(${x})`)
+          // Insert * for implicit multiplication with π
+          .replace(/(\d)π/g, '$1*π')
+          .replace(/π(\d)/g, 'π*$1')
+          .replace(/π/g, 'Math.PI');
         // eslint-disable-next-line no-eval
-        const result = eval(expr).toString();
+        let result = eval(expr);
+        // Round to nearest 1/1000000 (6 decimal places)
+        if (!isNaN(result) && isFinite(result)) {
+          result = Math.round(result * 1e6) / 1e6;
+        }
+        result = result.toString();
         setHistory((prev) => [...prev, { expr: display, result }]);
         setDisplay(result);
         setCursorPos(result.length); // Move cursor to end
@@ -45,9 +56,8 @@ function App() {
       setDisplay(display.slice(0, cursorPos) + funcText + display.slice(cursorPos));
       setCursorPos(cursorPos + funcText.length - 1); // cursor just inside the ()
     } else if (value === "π") {
-      const pi = Math.PI.toString();
-      setDisplay(display.slice(0, cursorPos) + pi + display.slice(cursorPos));
-      setCursorPos(cursorPos + pi.length);
+      setDisplay(display.slice(0, cursorPos) + 'π' + display.slice(cursorPos));
+      setCursorPos(cursorPos + 1);
     } else if (value === "e") {
       const e = Math.E.toString();
       setDisplay(display.slice(0, cursorPos) + e + display.slice(cursorPos));
@@ -170,6 +180,48 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [display, mode, handleButtonClick, cursorPos]);
 
+  useEffect(() => {
+    // Prevent cursor from landing inside function names
+    const funcNames = ["sin(", "cos(", "tan(", "log("];
+    let found = false;
+    for (const func of funcNames) {
+      for (let i = 1; i < func.length; i++) {
+        if (
+          cursorPos - i >= 0 &&
+          display.slice(cursorPos - i, cursorPos + (func.length - i)) === func
+        ) {
+          found = true;
+          if (cursorPos > lastCursorPos) {
+            // Moving right: jump to just inside the parentheses
+            setCursorPos(cursorPos - i + func.length);
+          } else {
+            // Moving left: jump to just before the function name
+            setCursorPos(cursorPos - i);
+          }
+          break;
+        }
+      }
+      if (found) break;
+    }
+    if (!found) setLastCursorPos(cursorPos);
+  }, [cursorPos, display, lastCursorPos]);
+
+  useEffect(() => {
+    // Scroll display to keep cursor visible
+    if (displayRef.current) {
+      const cursorElem = displayRef.current.querySelector('.calc-cursor');
+      if (cursorElem) {
+        const cursorRect = cursorElem.getBoundingClientRect();
+        const displayRect = displayRef.current.getBoundingClientRect();
+        if (cursorRect.left < displayRect.left) {
+          displayRef.current.scrollLeft -= (displayRect.left - cursorRect.left) + 10;
+        } else if (cursorRect.right > displayRect.right) {
+          displayRef.current.scrollLeft += (cursorRect.right - displayRect.right) + 10;
+        }
+      }
+    }
+  }, [cursorPos, display]);
+
   return (
     <div className="app-layout">
       <div className={`calculator-container${mode === "scientific" ? " scientific" : ""}`}>
@@ -205,9 +257,9 @@ function App() {
           >
             ◀
           </button>
-          <div className="display" style={{ flex: 1 }}>
+          <div className="display" style={{ flex: 1 }} ref={displayRef}>
             {display.slice(0, cursorPos)}
-            <span style={{ display: 'inline-block', width: '1ch', color: '#1976d2', fontWeight: 'bold', animation: 'blink 1s steps(1) infinite' }}>|</span>
+            <span className="calc-cursor" style={{ display: 'inline-block', width: '1ch', color: '#1976d2', fontWeight: 'bold', animation: 'blink 1s steps(1) infinite' }}>|</span>
             {display.slice(cursorPos) || (cursorPos === 0 ? '0' : '')}
           </div>
           <button
